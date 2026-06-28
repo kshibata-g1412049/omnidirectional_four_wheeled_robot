@@ -21,7 +21,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     RegisterEventHandler,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -52,12 +52,26 @@ def generate_launch_description():
     rviz_arg = DeclareLaunchArgument(
         "rviz", default_value="true", description="Launch rviz2"
     )
+    gui_arg = DeclareLaunchArgument(
+        "gui", default_value="true",
+        description="Run the gz GUI client. Set false for headless (server only).",
+    )
+    gui = LaunchConfiguration("gui")
+    gz_sim_source = PythonLaunchDescriptionSource(
+        os.path.join(ros_gz_sim, "launch", "gz_sim.launch.py")
+    )
 
-    gz_sim = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(ros_gz_sim, "launch", "gz_sim.launch.py")
-        ),
+    # GUI mode: server + GUI client.
+    gz_sim_gui = IncludeLaunchDescription(
+        gz_sim_source,
         launch_arguments={"gz_args": f"-r {world_file}"}.items(),
+        condition=IfCondition(gui),
+    )
+    # Headless mode: server only, no GUI client (used by the smoke test).
+    gz_sim_headless = IncludeLaunchDescription(
+        gz_sim_source,
+        launch_arguments={"gz_args": f"-s -r {world_file}"}.items(),
+        condition=UnlessCondition(gui),
     )
 
     robot_state_publisher = Node(
@@ -150,7 +164,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         rviz_arg,
-        gz_sim,
+        gui_arg,
+        gz_sim_gui,
+        gz_sim_headless,
         robot_state_publisher,
         spawn_robot,
         spawn_sphere,
