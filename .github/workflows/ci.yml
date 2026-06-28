@@ -11,6 +11,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Avoid duplicate runs (push + pull_request) for the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-smoke-test:
     runs-on: ubuntu-latest

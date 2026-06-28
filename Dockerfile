@@ -57,7 +57,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /ros2_ws
 COPY . /ros2_ws/src/omnidirectional_four_wheeled_robot
 RUN . /opt/ros/jazzy/setup.sh \
-    && colcon build --symlink-install \
+    && colcon build \
     && rm -rf build log
 
 # Make the smoke test directly invocable and source the overlay on each shell.
